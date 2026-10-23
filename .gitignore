@@ -1,0 +1,28 @@
+# Checkpoints
+checkpoints/
+
+# TensorBoard logs
+outputs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Data (large files)
+data/prepared/
+data/tokenizer/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

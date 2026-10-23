@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini-DeepSeek Pipeline — Research Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ============================================================
+   Professional Research Theme — Bright & Academic
+   ============================================================ */
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --bg:#f4f6f9;
+  --surface:#ffffff;
+  --surface2:#f0f2f5;
+  --surface3:#e4e7ec;
+
+  --text:#111418;
+  --text2:#596370;
+  --text3:#8d94a0;
+
+  --primary:#1e5bd6;
+  --primary-light:#e8effc;
+  --primary-dark:#1548b0;
+
+  --accent:#2563eb;
+  --accent2:#0d9488;
+  --success:#0d9488;
+  --success-bg:#eaf7f5;
+  --warning:#d97706;
+  --warning-bg:#fef7e6;
+  --danger:#dc2626;
+  --danger-bg:#fef2f2;
+  --purple:#6d28d9;
+  --purple-bg:#f3eeff;
+
+  --border:#dde1e8;
+  --border-light:#eaecf0;
+  --shadow:0 1px 2px rgba(0,0,0,0.03),0 1px 3px rgba(0,0,0,0.05);
+  --shadow-md:0 3px 10px rgba(0,0,0,0.04),0 2px 5px rgba(0,0,0,0.05);
+
+  --radius:6px;
+  --radius-lg:10px;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono','Cascadia Code','Consolas',monospace;
+}
+
+body{
+  background:var(--bg);color:var(--text);
+  font-family:var(--font);font-size:13.5px;line-height:1.55;
+  height:100vh;overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+#app{display:flex;flex-direction:column;height:100vh}
+
+/* Header */
+header{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 22px;display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;height:50px;box-shadow:var(--shadow);z-index:10;
+}
+.header-left{display:flex;align-items:center;gap:14px}
+.header-left .logo{
+  width:30px;height:30px;border-radius:6px;
+  background:linear-gradient(135deg,var(--primary),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:700;font-size:13px;
+}
+.header-left h1{font-size:15px;font-weight:650;color:var(--text);letter-spacing:-0.01em}
+.header-left .badge{
+  font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;
+  padding:2px 9px;border-radius:10px;
+  background:var(--primary-light);color:var(--primary-dark);
+}
+.status-indicator{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2)}
+.status-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--success);
+  box-shadow:0 0 5px rgba(13,148,136,0.35);transition:background 0.3s;
+}
+.status-dot.off{background:var(--text3);box-shadow:none}
+.status-dot.training{animation:pulse 1.4s infinite;background:var(--accent);box-shadow:0 0 7px rgba(37,99,235,0.45)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.45}}
+
+/* Tabs */
+.tabs{display:flex;gap:2px;background:var(--surface2);border-radius:var(--radius);padding:3px}
+.tab-btn{
+  padding:5px 14px;border:none;background:transparent;
+  color:var(--text2);border-radius:4px;cursor:pointer;
+  font-size:12px;font-weight:500;transition:all 0.15s;white-space:nowrap;
+}
+.tab-btn:hover{color:var(--text);background:var(--surface3)}
+.tab-btn.active{background:var(--surface);color:var(--primary);box-shadow:var(--shadow);font-weight:600}
+
+/* Main */
+main{flex:1;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:18px}
+.tab-panel{display:none;flex:1}
+.tab-panel.active{display:flex;flex-direction:column;gap:18px}
+
+/* Cards */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:18px 22px;box-shadow:var(--shadow);
+}
+.card h3{
+  font-size:12.5px;font-weight:650;color:var(--text2);
+  margin-bottom:14px;text-transform:uppercase;letter-spacing:0.5px;
+  display:flex;align-items:center;gap:8px;
+}
+.card h3::before{content:'';display:inline-block;width:3px;height:13px;border-radius:2px;background:var(--primary)}
+.card-row{display:flex;gap:18px;flex-wrap:wrap}
+.card-row>*{flex:1;min-width:280px}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px}
+.stat-box{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:15px 18px;box-shadow:var(--shadow);
+  transition:box-shadow 0.2s;
+}
+.stat-box:hover{box-shadow:var(--shadow-md)}
+.stat-box .num{font-size:25px;font-weight:700;font-family:var(--mono);letter-spacing:-0.02em;line-height:1.2}
+.stat-box .label{font-size:10.5px;color:var(--text3);margin-top:4px;text-transform:uppercase;letter-spacing:0.4px;font-weight:550}
+.stat-box.accent{border-left:3px solid var(--primary)}.stat-box.accent .num{color:var(--primary)}
+.stat-box.success{border-left:3px solid var(--success)}.stat-box.success .num{color:var(--success)}
+.stat-box.warning{border-left:3px solid var(--warning)}.stat-box.warning .num{color:var(--warning)}
+.stat-box.purple{border-left:3px solid var(--purple)}.stat-box.purple .num{color:var(--purple)}
+
+/* Buttons */
+.btn{
+  padding:6px 15px;border-radius:var(--radius);border:none;
+  font-size:12px;cursor:pointer;font-weight:550;transition:all 0.15s;
+  font-family:var(--font);display:inline-flex;align-items:center;gap:5px;
+}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-dark);box-shadow:0 2px 8px rgba(30,91,214,0.22)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{background:#b91c1c;box-shadow:0 2px 8px rgba(220,38,38,0.22)}
+.btn-outline{background:var(--surface);border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light)}
+.btn:disabled{opacity:0.45;cursor:not-allowed;box-shadow:none}
+
+/* Progress */
+.progress-wrap{background:var(--surface2);border-radius:3px;height:5px;overflow:hidden;margin-top:12px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--accent2));border-radius:3px;transition:width 0.4s ease}
+
+/* Inputs */
+select,input[type="number"],input[type="text"]{
+  padding:6px 10px;background:var(--surface);border:1px solid var(--border);
+  color:var(--text);border-radius:var(--radius);font-size:12px;
+  font-family:var(--font);outline:none;
+}
+select:focus,input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+input[type="range"]{accent-color:var(--primary)}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:9px 13px;text-align:left;border-bottom:1px solid var(--border-light)}
+th{color:var(--text3);font-weight:600;text-transform:uppercase;font-size:10.5px;letter-spacing:0.4px;background:var(--surface2)}
+tr:hover td{background:var(--primary-light)}
+
+/* Charts */
+.chart-wrap{position:relative;height:280px}
+.chart-wrap canvas{width:100%!important;height:100%!important}
+
+/* Architecture */
+.arch-diagram{display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:11.5px}
+.arch-layer{
+  padding:9px 14px;border-radius:4px;display:flex;align-items:center;gap:10px;
+  border-left:3px solid var(--primary);background:var(--surface2);
+}
+.arch-layer.embed{border-left-color:var(--accent2)}
+.arch-layer.attn{border-left-color:var(--primary)}
+.arch-layer.moe{border-left-color:var(--purple)}
+.arch-layer.norm{border-left-color:var(--warning)}
+.arch-layer.head{border-left-color:var(--success)}
+.arch-layer .name{font-weight:600;min-width:160px;font-family:var(--font);font-size:12px}
+.arch-layer .detail{color:var(--text2);flex:1}
+.arch-arrow{text-align:center;color:var(--text3);padding:1px 0;font-size:14px}
+
+/* Chat */
+#chat-box{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);
+  min-height:220px;max-height:420px;overflow-y:auto;padding:14px 16px;
+  font-family:var(--mono);font-size:12px;line-height:1.65;white-space:pre-wrap;
+}
+.chat-input-row{display:flex;gap:8px;margin-top:10px}
+.chat-input-row input{flex:1}
+.param-row{display:flex;gap:16px;align-items:center;font-size:12px;color:var(--text2);margin-top:10px;flex-wrap:wrap}
+.param-row label{display:flex;align-items:center;gap:5px}
+.param-row input[type="number"]{width:65px}
+#inf-stats{margin-left:auto;color:var(--primary);font-weight:550;font-family:var(--mono);font-size:11px}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:20px;right:20px;z-index:99;
+  padding:10px 18px;border-radius:var(--radius);font-size:12px;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text);box-shadow:var(--shadow-md);
+  animation:slideUp .3s ease;
+}
+@keyframes slideUp{from{transform:translateY(36px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* Method tags */
+.tag{
+  display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;
+  border-radius:3px;letter-spacing:0.3px;
+}
+.tag-done{background:var(--success-bg);color:var(--success)}
+.tag-pending{background:var(--warning-bg);color:var(--warning)}
+
+/* Empty state */
+.empty-state{text-align:center;padding:32px;color:var(--text3)}
+.empty-state .icon{font-size:40px;margin-bottom:8px}
+
+@media(max-width:768px){.card-row{flex-direction:column}}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <div class="header-left">
+    <div class="logo">DS</div>
+    <h1>Mini-DeepSeek Pipeline</h1>
+    <span class="badge">Research Dashboard</span>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="overview">Overview</button>
+    <button class="tab-btn" data-tab="training">Training</button>
+    <button class="tab-btn" data-tab="architecture">Architecture</button>
+    <button class="tab-btn" data-tab="inference">Inference</button>
+    <button class="tab-btn" data-tab="evaluation">Evaluation</button>
+    <button class="tab-btn" data-tab="checkpoints">Checkpoints</button>
+  </div>
+  <div class="status-indicator">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text">Idle</span>
+  </div>
+</header>
+
+<main>
+
+<!-- ==================== Overview ==================== -->
+<div class="tab-panel active" id="tab-overview">
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-box accent"><div class="num">--</div><div class="label">Model Parameters</div></div>
+    <div class="stat-box success"><div class="num">--</div><div class="label">Compute Device</div></div>
+    <div class="stat-box warning"><div class="num">IDLE</div><div class="label">Training Status</div></div>
+    <div class="stat-box purple"><div class="num">--</div><div class="label">KV Cache Compression</div></div>
+  </div>
+  <div class="card-row">
+    <div class="card">
+      <h3>DeepSeek Methods — Implementation Status</h3>
+      <table>
+        <tr><th>Method</th><th>Paper Reference</th><th style="width:90px">Status</th></tr>
+        <tr><td>MLA — Multi-head Latent Attention</td><td>V2 &sect;2.1.2</td><td><span class="tag tag-done">Implemented</span></td></tr>
+        <tr><td>DeepSeekMoE — Fine-grained Experts</td><td>V2 &sect;2.2</td><td><span class="tag tag-done">Implemented</span></td></tr>
+        <tr><td>Aux-Free Load Balancing</td><td>V3 &sect;2.2</td><td><span class="tag tag-done">Implemented</span></td></tr>
+        <tr><td>Multi-Token Prediction (MTP)</td><td>V3 &sect;2.4</td><td><span class="tag tag-done">Implemented</span></td></tr>
+        <tr><td>GRPO — Group Relative Policy Opt.</td><td>R1 &sect;2.2.3</td><td><span class="tag tag-done">Implemented</span></td></tr>
+        <tr><td>Rejection Sampling + Self-Improvement</td><td>R1 &sect;2.2.2</td><td><span class="tag tag-done">Implemented</span></td></tr>
+        <tr><td>Full R1 Pipeline (SFT → RL → RS → SFT → RL)</td><td>R1 Fig. 2</td><td><span class="tag tag-done">Implemented</span></td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Pipeline Stage-wise Performance Projection</h3>
+      <div class="chart-wrap"><canvas id="pipeline-chart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Training ==================== -->
+<div class="tab-panel" id="tab-training">
+  <div class="card">
+    <h3>Training Control Panel</h3>
+    <div class="btn-group">
+      <select id="train-stage">
+        <option value="pretrain">Stage 1: Pretrain (TinyStories)</option>
+        <option value="sft">Stage 2: Cold-Start SFT (GSM8K CoT)</option>
+        <option value="grpo">Stage 3: GRPO (RL Reasoning)</option>
+      </select>
+      <input type="number" id="train-steps" value="50" min="10" max="500" step="10">
+      <span style="font-size:12px;color:var(--text2)">steps</span>
+      <button class="btn btn-primary" id="btn-start" onclick="startTr()">&#9654; Start Training</button>
+      <button class="btn btn-danger" id="btn-stop" onclick="stopTr()" disabled>&#9632; Stop</button>
+    </div>
+    <div id="train-status" style="margin-top:10px;font-size:12px;color:var(--text2)">Ready. Select a training stage and click Start.</div>
+    <div class="progress-wrap"><div class="progress-fill" id="train-progress" style="width:0%"></div></div>
+  </div>
+  <div class="card-row">
+    <div class="card" style="flex:2">
+      <h3>Training Loss Curve</h3>
+      <div class="chart-wrap"><canvas id="loss-chart"></canvas></div>
+    </div>
+    <div class="card" style="flex:1">
+      <h3>Expert Utilization Distribution</h3>
+      <div class="chart-wrap"><canvas id="expert-chart"></canvas></div>
+    </div>
+  </div>
+  <div class="stats-grid" id="train-stats-grid">
+    <div class="stat-box"><div class="num" id="ts-step">0</div><div class="label">Current Step</div></div>
+    <div class="stat-box accent"><div class="num" id="ts-loss">--</div><div class="label">Training Loss</div></div>
+    <div class="stat-box warning"><div class="num" id="ts-lr">--</div><div class="label">Learning Rate</div></div>
+    <div class="stat-box purple"><div class="num" id="ts-speed">--</div><div class="label">Throughput (tok/s)</div></div>
+    <div class="stat-box success"><div class="num" id="ts-elapsed">--</div><div class="label">Elapsed Time</div></div>
+  </div>
+</div>
+
+<!-- ==================== Architecture ==================== -->
+<div class="tab-panel" id="tab-architecture">
+  <div class="card-row">
+    <div class="card">
+      <h3>Model Graph — DeepSeek Decoder Architecture</h3>
+      <div id="arch-view" class="arch-diagram">Loading architecture...</div>
+    </div>
+    <div class="card">
+      <h3>KV Cache Memory — MLA vs. Standard MHA</h3>
+      <div class="chart-wrap"><canvas id="kvchart"></canvas></div>
+      <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--text2)">
+        Single-layer comparison at sequence length = 512 (fp16)
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Hyperparameter Configuration</h3>
+    <div id="model-config-table"></div>
+  </div>
+</div>
+
+<!-- ==================== Inference ==================== -->
+<div class="tab-panel" id="tab-inference">
+  <div class="card">
+    <h3>Interactive Model Inference</h3>
+    <div id="chat-box">Enter a math problem below to test the model's chain-of-thought reasoning.
+
+Example queries:
+  "What is 15 + 27?"
+  "If John has 5 apples and gives 2 to Mary, how many does he have left?"
+  "A train travels 60 miles per hour for 3 hours. How far does it go?"</div>
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Type a math problem and press Enter..."
+             onkeydown="if(event.key==='Enter')runInf()">
+      <button class="btn btn-primary" onclick="runInf()">Generate</button>
+    </div>
+    <div class="param-row">
+      <label>Temperature: <input type="range" id="temp-slider" min="0" max="1.5" step="0.1" value="0.7"></label>
+      <span id="temp-val" style="font-weight:600;min-width:28px">0.7</span>
+      <label>Max tokens: <input type="number" id="max-tokens" value="100" min="10" max="256"></label>
+      <span id="inf-stats"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Evaluation ==================== -->
+<div class="tab-panel" id="tab-evaluation">
+  <div class="card-row">
+    <div class="card">
+      <h3>Pipeline Stage Comparison (Projected)</h3>
+      <div class="chart-wrap"><canvas id="eval-bar-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Expected Accuracy by Stage</h3>
+      <div id="eval-table"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Checkpoints ==================== -->
+<div class="tab-panel" id="tab-checkpoints">
+  <div class="card">
+    <h3>Saved Model Checkpoints</h3>
+    <div id="checkpoints-table"><div class="empty-state"><div class="icon">&#128218;</div>Loading checkpoints...</div></div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// ============================================================
+// State
+// ============================================================
+const API = '';
+let lossChart = null, expertChart = null, pipelineChart = null, kvChart = null, evalChart = null;
+let eventSource = null;
+let lossData = [], expertData = [];
+
+// ============================================================
+// Tab Navigation
+// ============================================================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    onTabShow(btn.dataset.tab);
+  });
+});
+
+function onTabShow(tab) {
+  if (tab === 'overview') loadOverview();
+  if (tab === 'architecture') loadArchitecture();
+  if (tab === 'evaluation') loadEvaluation();
+  if (tab === 'checkpoints') loadCheckpoints();
+}
+
+// ============================================================
+// API
+// ============================================================
+async function api(path, opts = {}) {
+  const r = await fetch(API + path, { headers: {'Content-Type':'application/json'}, ...opts });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+function toast(msg, dur = 3000) {
+  const e = document.createElement('div'); e.className = 'toast'; e.textContent = msg;
+  document.getElementById('toast-container').appendChild(e);
+  setTimeout(() => e.remove(), dur);
+}
+
+// ============================================================
+// Overview
+// ============================================================
+async function loadOverview() {
+  try {
+    const [s, m] = await Promise.all([api('/api/status'), api('/api/model/info')]);
+    document.getElementById('stats-grid').innerHTML =
+      `<div class="stat-box accent"><div class="num">${(m.total_params/1e6).toFixed(1)}M</div><div class="label">Model Parameters</div></div>
+       <div class="stat-box success"><div class="num">${s.device.cuda ? 'RTX 4060' : 'CPU'}</div><div class="label">Compute Device</div></div>
+       <div class="stat-box warning"><div class="num">${s.training.running ? s.training.stage.toUpperCase() : 'IDLE'}</div><div class="label">Training Status</div></div>
+       <div class="stat-box purple"><div class="num">${m.kv_cache_compression.compression_ratio.toFixed(0)}&times;</div><div class="label">KV Cache Compression</div></div>`;
+    const dot = document.getElementById('status-dot');
+    dot.className = s.training.running ? 'status-dot training' : 'status-dot off';
+    document.getElementById('status-text').textContent = s.training.running ? 'Training...' : 'Idle';
+    drawPipelineChart();
+  } catch(e) { console.error(e); }
+}
+
+function drawPipelineChart() {
+  const ctx = document.getElementById('pipeline-chart')?.getContext('2d');
+  if (!ctx) return;
+  if (pipelineChart) pipelineChart.destroy();
+  pipelineChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Pretrained','Cold-SFT','SFT+GRPO','Full R1 Pipeline'],
+      datasets: [{
+        label: 'GSM8K Accuracy (%)',
+        data: [3, 13, 22, 28],
+        backgroundColor: ['#94a3b8','#60a5fa','#818cf8','#34d399'],
+        borderColor: ['#64748b','#3b82f6','#6366f1','#10b981'],
+        borderWidth: 1.5, borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{display:false} },
+      scales: {
+        y: { beginAtZero:true, max:35, title:{display:true,text:'Accuracy (%)',color:'#596370'},
+          ticks:{color:'#8d94a0'}, grid:{color:'#e8ecf1'} },
+        x: { ticks:{color:'#596370',font:{size:10}}, grid:{display:false} }
+      }
+    }
+  });
+}
+
+// ============================================================
+// Training
+// ============================================================
+async function startTr() {
+  const stage = document.getElementById('train-stage').value;
+  const steps = parseInt(document.getElementById('train-steps').value);
+  try {
+    await api(`/api/training/start?stage=${stage}&steps=${steps}`, {method:'POST'});
+    document.getElementById('btn-start').disabled = true;
+    document.getElementById('btn-stop').disabled = false;
+    document.getElementById('train-status').innerHTML =
+      `<span style="color:var(--primary);font-weight:550">&#9679; Training ${stage} — ${steps} steps</span>`;
+    document.getElementById('status-dot').className = 'status-dot training';
+    document.getElementById('status-text').textContent = 'Training...';
+    lossData = []; expertData = [];
+    connectSSE();
+  } catch(e) { toast(e.message); }
+}
+
+async function stopTr() {
+  try {
+    await api('/api/training/stop', {method:'POST'});
+    document.getElementById('btn-start').disabled = false;
+    document.getElementById('btn-stop').disabled = true;
+    document.getElementById('train-status').innerHTML =
+      '<span style="color:var(--warning);font-weight:550">Training stopped by user.</span>';
+    document.getElementById('status-dot').className = 'status-dot off';
+    document.getElementById('status-text').textContent = 'Idle';
+    if (eventSource) eventSource.close();
+  } catch(e) { toast(e.message); }
+}
+
+function connectSSE() {
+  if (eventSource) eventSource.close();
+  eventSource = new EventSource(API + '/api/training/metrics/stream');
+  eventSource.onmessage = (e) => {
+    const m = JSON.parse(e.data);
+    lossData.push({x:m.step, y:m.loss});
+    if (m.expert_utilization?.length) expertData = m.expert_utilization;
+    updateTrainingUI(m);
+    drawLossChart();
+    drawExpertChart();
+  };
+  eventSource.onerror = () => {
+    document.getElementById('btn-start').disabled = false;
+    document.getElementById('btn-stop').disabled = true;
+    document.getElementById('status-dot').className = 'status-dot off';
+    document.getElementById('status-text').textContent = 'Idle';
+    document.getElementById('train-status').innerHTML =
+      '<span style="color:var(--success);font-weight:550">&#10003; Training complete.</span>';
+  };
+}
+
+function updateTrainingUI(m) {
+  document.getElementById('train-progress').style.width = (m.step / Math.max(m.max_steps||100,1) * 100) + '%';
+  document.getElementById('ts-step').textContent = m.step;
+  document.getElementById('ts-loss').textContent = m.loss.toFixed(3);
+  document.getElementById('ts-lr').textContent = m.learning_rate.toExponential(2);
+  document.getElementById('ts-speed').textContent = Math.round(m.tokens_per_sec);
+  document.getElementById('ts-elapsed').textContent = m.elapsed.toFixed(1) + 's';
+}
+
+function drawLossChart() {
+  const ctx = document.getElementById('loss-chart')?.getContext('2d');
+  if (!ctx) return;
+  if (lossChart) lossChart.destroy();
+  lossChart = new Chart(ctx, {
+    type: 'line',
+    data: { datasets: [{
+      label:'Loss', data:lossData, borderColor:'#2563eb', borderWidth:2,
+      pointRadius:0, tension:0.35, fill:true,
+      backgroundColor:'rgba(37,99,235,0.06)',
+    }]},
+    options: {
+      responsive:true, maintainAspectRatio:false, animation:{duration:150},
+      plugins: { legend:{labels:{color:'#596370',usePointStyle:true}} },
+      scales: {
+        x: { type:'linear', title:{display:true,text:'Step',color:'#8d94a0'},
+          ticks:{color:'#8d94a0'}, grid:{color:'#e8ecf1'} },
+        y: { title:{display:true,text:'Loss',color:'#8d94a0'},
+          ticks:{color:'#8d94a0'}, grid:{color:'#e8ecf1'} }
+      }
+    }
+  });
+}
+
+function drawExpertChart() {
+  const ctx = document.getElementById('expert-chart')?.getContext('2d');
+  if (!ctx || !expertData.length) return;
+  if (expertChart) expertChart.destroy();
+  const colors = ['#3b82f6','#0891b2','#0d9488','#6366f1','#8b5cf6','#d946ef','#ec4899','#f59e0b'];
+  expertChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: expertData.map((_,i) => `E-${i}`),
+      datasets: [{
+        label:'Tokens', data:expertData,
+        backgroundColor: colors, borderWidth:0, borderRadius:3,
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{display:false} },
+      scales: {
+        y: { beginAtZero:true, ticks:{color:'#8d94a0'}, grid:{color:'#e8ecf1'} },
+        x: { ticks:{color:'#596370'}, grid:{display:false} }
+      }
+    }
+  });
+}
+
+// ============================================================
+// Architecture
+// ============================================================
+async function loadArchitecture() {
+  try {
+    const m = await api('/api/model/info');
+    const c = m.config;
+    document.getElementById('arch-view').innerHTML =
+      `<div class="arch-layer embed"><span class="name">Token Embedding</span><span class="detail">vocab_size=${c.vocab_size} &rarr; ${c.hidden_size}d &ensp;|&ensp; ${(c.vocab_size*c.hidden_size/1e6).toFixed(1)}M parameters, weight-tied with LM head</span></div>
+       <div class="arch-arrow">&darr; &times;${c.num_layers} decoder layers</div>
+       <div class="arch-layer attn"><span class="name">MLA Attention</span><span class="detail">Q: ${c.hidden_size}&rarr;${c.q_lora_rank}&rarr;${c.num_heads}&times;${c.d_head}d &ensp;|&ensp; KV: ${c.hidden_size}&rarr;${c.kv_lora_rank}&rarr;${c.num_heads}&times;${c.d_head}d &ensp;|&ensp; RoPE on first ${c.qk_rope_dim}d (partial)</span></div>
+       <div class="arch-arrow">+ Residual</div>
+       <div class="arch-layer moe"><span class="name">DeepSeekMoE FFN</span><span class="detail">Router: Top-${c.top_k} of ${c.num_experts} experts &ensp;|&ensp; +${c.num_shared_experts} shared expert (always on) &ensp;|&ensp; SwiGLU: intermediate=${c.expert_intermediate_size}d &ensp;|&ensp; Aux-free load balancing (V3 &sect;2.2)</span></div>
+       <div class="arch-arrow">+ Residual</div>
+       <div class="arch-layer norm"><span class="name">Final RMSNorm</span><span class="detail">Normalizes output before LM head projection</span></div>
+       <div class="arch-arrow">&darr;</div>
+       <div class="arch-layer head"><span class="name">LM Head (weight-tied with embedding)</span><span class="detail">Projects ${c.hidden_size}d &rarr; ${c.vocab_size}d logits${c.use_mtp ? ' &ensp;|&ensp; MTP Head: predicts tokens t+1 through t+'+c.num_pred_tokens+' (&#955;=0.3)' : ''}</span></div>`;
+    document.getElementById('model-config-table').innerHTML =
+      `<table><tr><th>Parameter</th><th>Value</th><th style="width:55%">Description</th></tr>
+        ${['hidden_size','num_layers','num_heads','d_head','q_lora_rank','kv_lora_rank','qk_rope_dim',
+           'num_experts','num_shared_experts','top_k','expert_intermediate_size','num_pred_tokens',
+           'vocab_size','max_seq_len'].map(k =>
+          `<tr><td style="font-family:var(--mono);font-size:11px">${k}</td><td style="font-weight:600">${c[k]}</td><td style="color:var(--text2)">${desc(k)}</td></tr>`).join('')}
+      </table>`;
+    drawKVCacheChart(m.kv_cache_compression);
+  } catch(e) { console.error(e); }
+}
+
+function desc(k) {
+  const m = {
+    hidden_size:'Hidden dimension (d_model) of all transformer layers',
+    num_layers:'Number of stacked decoder blocks',
+    num_heads:'Parallel attention heads per layer',
+    d_head:'Dimension of each individual attention head',
+    q_lora_rank:'Low-rank compression dimension for Query (MLA - V2 &sect;2.1.2)',
+    kv_lora_rank:'Latent space dimension for Key/Value compression (MLA)',
+    qk_rope_dim:'Number of Q/K dimensions receiving rotary position embeddings',
+    num_experts:'Fine-grained routed experts in MoE (V2 &sect;2.2)',
+    num_shared_experts:'Always-active shared experts for common knowledge',
+    top_k:'Number of active routed experts per input token',
+    expert_intermediate_size:'Hidden dimension inside each expert SwiGLU FFN',
+    num_pred_tokens:'Future token positions predicted via MTP (V3 &sect;2.4)',
+    vocab_size:'BPE token vocabulary size',
+    max_seq_len:'Maximum input sequence length (tokens)',
+  };
+  return m[k] || '';
+}
+
+function drawKVCacheChart(kv) {
+  const ctx = document.getElementById('kvchart')?.getContext('2d');
+  if (!ctx) return;
+  if (kvChart) kvChart.destroy();
+  kvChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Standard MHA','MLA (This Project)'],
+      datasets: [{
+        label:'KB per layer (seq=512, fp16)', data:[kv.mha_per_layer_kb, kv.mla_per_layer_kb],
+        backgroundColor:['#94a3b8','#34d399'], borderColor:['#64748b','#10b981'],
+        borderWidth:1.5, borderRadius:4,
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend:{display:false},
+        subtitle:{display:true, text:`${kv.compression_ratio.toFixed(1)}&times; Compression Ratio`, color:'#6d28d9', font:{size:14,weight:'bold'}, padding:10}
+      },
+      scales: {
+        y: { title:{display:true,text:'Kilobytes',color:'#8d94a0'}, ticks:{color:'#8d94a0'}, grid:{color:'#e8ecf1'} },
+        x: { ticks:{color:'#596370'}, grid:{display:false} }
+      }
+    }
+  });
+}
+
+// ============================================================
+// Inference
+// ============================================================
+async function runInf() {
+  const input = document.getElementById('chat-input');
+  const prompt = input.value.trim();
+  if (!prompt) return;
+  const box = document.getElementById('chat-box');
+  const temp = document.getElementById('temp-slider').value;
+  const mt = document.getElementById('max-tokens').value;
+  box.textContent += `\n\n>>> ${prompt}\n\nGenerating...`;
+  box.scrollTop = box.scrollHeight;
+  try {
+    const r = await api(`/api/inference/generate?prompt=${encodeURIComponent(prompt)}&max_tokens=${mt}&temperature=${temp}`, {method:'POST'});
+    box.textContent = box.textContent.replace('Generating...', r.generated || '(empty output)');
+    document.getElementById('inf-stats').textContent =
+      `${r.tokens_generated} tokens &middot; ${r.time_seconds.toFixed(2)}s &middot; ${Math.round(r.tokens_per_sec)} tok/s`;
+  } catch(e) {
+    box.textContent = box.textContent.replace('Generating...', 'Error: ' + e.message);
+  }
+  box.scrollTop = box.scrollHeight;
+  input.value = '';
+}
+
+document.getElementById('temp-slider').addEventListener('input', function() {
+  document.getElementById('temp-val').textContent = this.value;
+});
+
+// ============================================================
+// Evaluation
+// ============================================================
+function loadEvaluation() {
+  document.getElementById('eval-table').innerHTML = `
+    <table>
+      <tr><th>Stage</th><th style="width:100px">Accuracy</th><th>Technical Contribution</th></tr>
+      <tr><td>1. Pretrained Only</td><td style="font-weight:650;color:var(--text3)">2 &ndash; 5%</td><td style="color:var(--text2)">Baseline: next-token prediction on TinyStories; no instruction following</td></tr>
+      <tr><td>2. Cold-Start SFT</td><td style="font-weight:650;color:#3b82f6">10 &ndash; 15%</td><td style="color:var(--text2)">200 CoT-formatted math examples teach reasoning format; learns &lt;think&gt;...&lt;answer&gt; structure</td></tr>
+      <tr><td>3. SFT + GRPO (R1)</td><td style="font-weight:650;color:#6366f1">18 &ndash; 25%</td><td style="color:var(--text2)">Group Relative Policy Optimization: RL improves reasoning without a critic model (R1 &sect;2.2.3)</td></tr>
+      <tr><td>4. Full R1 Pipeline</td><td style="font-weight:650;color:#10b981">25 &ndash; 30%</td><td style="color:var(--text2)">Self-improvement loop: rejection sampling on 500 prompts &rarr; SFT retraining &rarr; GRPO refinement (R1 Fig.2)</td></tr>
+    </table>
+    <div style="margin-top:12px;padding:10px 14px;background:var(--primary-light);border-radius:var(--radius);font-size:12px;color:var(--primary-dark)">
+      <strong>Note:</strong> These are <em>projected</em> values for a 56.6M parameter model trained on synthetic data.
+      The key educational objective is observing the <strong>improvement trend</strong> across pipeline stages,
+      which mirrors DeepSeek-R1's core finding: each stage contributes incrementally to reasoning capability.
+    </div>`;
+  drawEvalChart();
+}
+
+function drawEvalChart() {
+  const ctx = document.getElementById('eval-bar-chart')?.getContext('2d');
+  if (!ctx) return;
+  if (evalChart) evalChart.destroy();
+  evalChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Pretrained','Cold-SFT','SFT+GRPO','Full R1 Pipeline'],
+      datasets: [{
+        label:'Accuracy (%)', data:[3.5, 12.5, 21.5, 27.5],
+        backgroundColor:['#cbd5e1','#93c5fd','#a5b4fc','#6ee7b7'],
+        borderColor:['#94a3b8','#3b82f6','#6366f1','#10b981'],
+        borderWidth:1.5, borderRadius:5,
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend:{display:false},
+        tooltip:{callbacks:{label: ctx => `Accuracy: ${ctx.raw}%`}}
+      },
+      scales: {
+        y: { beginAtZero:true, max:35, title:{display:true,text:'GSM8K Accuracy (%)',color:'#596370'},
+          ticks:{color:'#8d94a0',callback:v=>v+'%'}, grid:{color:'#e8ecf1'} },
+        x: { ticks:{color:'#596370',font:{size:10}}, grid:{display:false} }
+      }
+    }
+  });
+}
+
+// ============================================================
+// Checkpoints
+// ============================================================
+async function loadCheckpoints() {
+  try {
+    const ckpts = await api('/api/checkpoints');
+    if (!ckpts.length) {
+      document.getElementById('checkpoints-table').innerHTML =
+        '<div class="empty-state"><div class="icon">&#128218;</div><p>No checkpoints found. Start training to generate model checkpoints.</p></div>';
+      return;
+    }
+    document.getElementById('checkpoints-table').innerHTML = `
+      <table><tr><th>Training Stage</th><th>Filename</th><th>Size</th><th>Last Modified</th></tr>
+      ${ckpts.map(c => `<tr>
+        <td><span style="color:var(--primary);font-weight:600">${c.stage}</span></td>
+        <td style="font-family:var(--mono);font-size:11px">${c.file}</td>
+        <td>${c.size_mb} MB</td>
+        <td style="color:var(--text2)">${c.modified}</td>
+      </tr>`).join('')}</table>`;
+  } catch(e) { console.error(e); }
+}
+
+// ============================================================
+// Init
+// ============================================================
+loadOverview();
+setInterval(async () => {
+  try {
+    const s = await api('/api/status');
+    const dot = document.getElementById('status-dot');
+    const txt = document.getElementById('status-text');
+    if (s.training.running) {
+      dot.className = 'status-dot training';
+      txt.textContent = `Training ${s.training.stage}...`;
+      document.getElementById('train-progress').style.width =
+        (s.training.step / Math.max(s.training.max_steps||100,1) * 100) + '%';
+      document.getElementById('ts-step').textContent = s.training.step;
+      document.getElementById('ts-loss').textContent = s.training.loss.toFixed(3);
+    } else {
+      if (dot.className.includes('training')) {
+        dot.className = 'status-dot off';
+        txt.textContent = 'Idle';
+        document.getElementById('btn-start').disabled = false;
+        document.getElementById('btn-stop').disabled = true;
+      }
+    }
+  } catch(e) {}
+}, 3000);
+</script>
+</body>
+</html>
